@@ -10,9 +10,9 @@ What is allowed:
 - Python code compiled with RestrictedPython plus async functions, `await`, and
   annotated assignments.
 - Imports from allow-listed module prefixes only:
-  `json`, `langgraph`, `langchain*`, `orcheo`, `typing*`, `collections`,
-  `dataclasses`, `datetime`, `functools`, `html`, `itertools`, `math`,
-  `operator`, `pydantic`, `uuid`.
+  `asyncio`, `json`, `langgraph`, `langchain*`, `orcheo`, `typing*`,
+  `collections`, `dataclasses`, `datetime`, `functools`, `html`,
+  `itertools`, `math`, `operator`, `pydantic`, `re`, `uuid`.
 - Standard `if __name__ == "__main__":` guards (the sandbox sets `__name__` to
   `"__orcheo_ingest__"`, so guarded blocks do not run).
 
