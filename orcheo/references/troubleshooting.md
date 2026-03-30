@@ -27,6 +27,14 @@ How to fix common failures:
   allow-listed module or move the logic into Orcheo/server-side code.
 - `Relative imports are not supported`: change to absolute imports from an
   allow-listed package.
+- `ValidationError` during upload for a templated custom-node field, for
+  example `Input should be a valid list` with
+  `input_value='{{config.configurable.text_fields}}'`: ingestion validates the
+  node constructor before runtime template resolution, so custom node fields
+  must accept the unresolved template string. If the runtime value is expected
+  to be a list/dict/bool/etc., widen the field annotation to also include
+  `str` (for example `list[str] | str`). Orcheo runtime will resolve the
+  template before node execution.
 - `script exceeds size limit` (wording may vary): remove dead code, trim large
   constants/embedded assets, and move bulky data or helper logic into
   versioned modules imported from allow-listed packages.

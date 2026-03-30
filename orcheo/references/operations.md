@@ -93,3 +93,37 @@ orcheo credential update <credential_id> --metadata '{"key":"value"}'
 orcheo credential delete <credential_id>
 orcheo credential delete <credential_id> --force
 ```
+
+## Plugins
+
+Use plugin commands to manage Orcheo plugins.
+
+### List, show, and search plugins
+
+```bash
+orcheo plugin list
+orcheo plugin show <plugin_name>
+orcheo plugin doctor
+```
+
+### Install, update, and uninstall plugins
+
+```bash
+orcheo plugin install <ref>          # package, path, wheel, or git ref
+orcheo plugin update <plugin_name>
+orcheo plugin update --all
+orcheo plugin uninstall <plugin_name>
+orcheo plugin enable <plugin_name>
+orcheo plugin disable <plugin_name>
+```
+
+### Scaffold a new plugin
+
+```bash
+orcheo plugin init <name>
+orcheo plugin init my-plugin --author "Jane Doe" --exports "nodes,edges"
+orcheo plugin init my-plugin --output-dir /tmp
+```
+
+This generates a complete package skeleton with `pyproject.toml`, manifest,
+starter node implementation, and tests — no need to clone the template repo.
