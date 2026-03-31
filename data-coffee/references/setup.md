@@ -8,7 +8,11 @@ Use this page when you need exact MCP configuration, first-run registration step
 
 ## Config snippets
 
-Use `../scripts/render_mcp_config.py` to generate the snippet, or copy one of these directly.
+From the skill root, use `./scripts/render_mcp_config.py` to generate the snippet, or copy one of these directly.
+
+Prefer `DATA_COFFEE_TOKEN=... ./scripts/render_mcp_config.py` or pasting the token directly into the config file. Avoid `--token` on shared systems because command-line arguments can be exposed in shell history and process listings.
+
+These JSON examples are MCP server config snippets, so they use `"type": "http"`. The `agents/openai.yaml` example is a different agent-specific format and uses `transport: "streamable_http"` for the same endpoint.
 
 Without token yet:
 

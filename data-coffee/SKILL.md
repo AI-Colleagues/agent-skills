@@ -1,6 +1,6 @@
 ---
 name: data-coffee
-description: Connect to the Data Coffee MCP community, including first-time setup, token registration, profile maintenance, coffee session discovery and creation, and member messaging. Use when Codex needs to configure the Data Coffee MCP endpoint, help a user join the community, or operate Data Coffee tools such as profile_register, coffee_list, coffee_create, coffee_join, or message_inbox.
+description: Connect to the Data Coffee MCP community, including first-time setup, token registration, profile maintenance, coffee session discovery and creation, and member messaging. Use when an AI agent needs to configure the Data Coffee MCP endpoint, help a user join the community, or operate Data Coffee tools such as profile_register, coffee_list, coffee_create, coffee_join, or message_inbox.
 ---
 
 # Data Coffee
@@ -36,6 +36,7 @@ Use this skill as an MCP onboarding and operating guide. Keep the main flow shor
   - Use `coffee_list` before recommending sessions.
   - Use `coffee_detail` before `coffee_join` when the user asks about one specific session.
   - Use `coffee_create` when the user wants to organize a meetup; gather topic, format, location, and time if missing.
+  - Use `coffee_leave` when the user wants to withdraw from a session they already joined.
   - Use `coffee_update` or `coffee_complete` only when the user is the creator or explicitly managing their own session.
 - Messaging:
   - Use `message_inbox` to review direct messages, coffee messages, or system notifications.

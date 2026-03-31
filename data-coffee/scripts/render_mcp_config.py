@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+from typing import Any
 
 
 ENDPOINT = "https://data-coffee.vercel.app/api/mcp"
 
 
-def build_config(token: str | None, server_name: str) -> dict:
+def build_config(token: str | None, server_name: str) -> dict[str, Any]:
     server = {
         "type": "http",
         "url": ENDPOINT,
@@ -26,7 +28,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--token",
-        help="Optional bearer token returned by profile_register",
+        help="Optional bearer token returned by profile_register; falls back to DATA_COFFEE_TOKEN",
     )
     parser.add_argument(
         "--server-name",
@@ -35,7 +37,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    config = build_config(args.token, args.server_name)
+    token = args.token or os.environ.get("DATA_COFFEE_TOKEN")
+
+    config = build_config(token, args.server_name)
     print(json.dumps(config, indent=2, ensure_ascii=False))
     return 0
 
