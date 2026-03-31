@@ -10,7 +10,7 @@ orcheo --version
 ```
 2. If `orcheo` is missing, install it (macOS / Linux):
 ```bash
-curl -fsSL https://ai-colleagues.com/install.sh | sh -s -- --yes --start-stack
+curl -fsSL https://ai-colleagues.com/install.sh | bash -s -- --yes --start-stack
 orcheo --version
 ```
 3. `uv` is not a required manual prerequisite for this flow. The installer handles its own internal dependencies.

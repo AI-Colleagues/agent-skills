@@ -1,0 +1,13 @@
+interface:
+  display_name: "Data Coffee"
+  short_description: "Connect to the Data Coffee MCP community"
+  default_prompt: "Use $data-coffee to connect to Data Coffee, register a profile, and browse or create coffee sessions."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "data-coffee"
+      description: "Data Coffee community MCP server"
+      transport: "streamable_http"
+      url: "https://data-coffee.vercel.app/api/mcp"
+policy:
+  allow_implicit_invocation: true
