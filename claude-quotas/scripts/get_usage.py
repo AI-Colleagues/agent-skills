@@ -16,8 +16,11 @@ import pty
 import re
 import select
 import signal
+import subprocess
 import sys
+import tempfile
 import time
+import json
 
 
 def strip_ansi(text: str) -> str:
@@ -31,12 +34,39 @@ def is_desktop_app_mode() -> bool:
         or os.environ.get('CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST') == '1'
 
 
+_MISSING = object()
+
+
+def _write_json_atomic(path: pathlib.Path, data: object) -> None:
+    encoded = json.dumps(data)
+    fd = None
+    tmp_path = None
+    try:
+        fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f'.{path.name}.', suffix='.tmp')
+        tmp_path = pathlib.Path(tmp_name)
+        if path.exists():
+            os.chmod(tmp_path, path.stat().st_mode)
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            fd = None
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, path)
+    finally:
+        if fd is not None:
+            os.close(fd)
+        if tmp_path is not None and tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+
+
 def _patch_config(path: pathlib.Path, key: str, value) -> object:
-    import json as _json
-    data = _json.loads(path.read_text())
-    original = data.get(key)
+    data = json.loads(path.read_text())
+    original = data.get(key, _MISSING)
     data[key] = value
-    path.write_text(_json.dumps(data))
+    _write_json_atomic(path, data)
     return original
 
 
@@ -52,29 +82,34 @@ def capture_usage_output(timeout: float = 10.0) -> str:
     patched = False
     if config_path.exists():
         try:
+            # `claude /usage` can reject valid paid accounts when this cached flag is stale,
+            # so the helper temporarily flips it to reach the real usage view.
             original_value = _patch_config(config_path, 'hasAvailableSubscription', True)
             patched = True
         except Exception:
             pass
 
     master_fd, slave_fd = pty.openpty()
-    pid = os.fork()
-    if pid == 0:
-        os.setsid()
-        os.dup2(slave_fd, 0)
-        os.dup2(slave_fd, 1)
-        os.dup2(slave_fd, 2)
-        os.close(master_fd)
+    process = None
+    restore_error = None
+    # Strip Desktop-app-specific env vars so the subprocess runs as a
+    # plain CLI, which uses the standard OAuth token flow.
+    skip = {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_ENTRYPOINT',
+            'CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST'}
+    env = {k: v for k, v in os.environ.items() if k not in skip}
+    try:
+        process = subprocess.Popen(
+            ['claude', '/usage'],
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            env=env,
+            text=False,
+            start_new_session=True,
+        )
+    finally:
         os.close(slave_fd)
-        # Strip Desktop-app-specific env vars so the subprocess runs as a
-        # plain CLI, which uses the standard OAuth token flow.
-        skip = {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_ENTRYPOINT',
-                'CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST'}
-        env = {k: v for k, v in os.environ.items() if k not in skip}
-        os.execvpe('claude', ['claude', '/usage'], env)
-        os._exit(1)
 
-    os.close(slave_fd)
     chunks: list[bytes] = []
     start = time.time()
     done = False
@@ -95,7 +130,7 @@ def capture_usage_output(timeout: float = 10.0) -> str:
             if 'Current week' in combined and 'Resets' in combined:
                 time.sleep(0.5)
                 done = True
-            elif 'only' in combined and ('subscription' in combined or 'vilable' in combined):
+            elif 'only' in combined and ('subscription' in combined or 'available' in combined):
                 done = True
     finally:
         try:
@@ -103,21 +138,37 @@ def capture_usage_output(timeout: float = 10.0) -> str:
         except OSError:
             pass
         time.sleep(0.3)
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            os.waitpid(pid, os.WNOHANG)
-        except ChildProcessError:
-            pass
+        if process is not None:
+            try:
+                os.kill(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                try:
+                    process.kill()
+                except OSError:
+                    pass
+                process.wait(timeout=1)
         os.close(master_fd)
 
         if patched and config_path.exists():
             try:
-                _patch_config(config_path, 'hasAvailableSubscription', original_value)
+                data = json.loads(config_path.read_text())
+                if original_value is _MISSING:
+                    data.pop('hasAvailableSubscription', None)
+                else:
+                    data['hasAvailableSubscription'] = original_value
+                _write_json_atomic(config_path, data)
             except Exception:
-                pass
+                restore_error = RuntimeError(
+                    f'failed to restore {config_path}; '
+                    'please verify `hasAvailableSubscription` manually'
+                )
+
+    if restore_error is not None:
+        raise restore_error
 
     return b''.join(chunks).decode('utf-8', errors='replace')
 
@@ -129,7 +180,7 @@ def parse_usage(raw: str) -> list[dict] | None:
     """
     clean = strip_ansi(raw)
 
-    if 'only' in clean and ('subscription' in clean or 'vilable' in clean):
+    if 'only' in clean and ('subscription' in clean or 'available' in clean):
         return None
 
     section_keys = ['Current session', 'Current week', 'Extra usage']
@@ -156,10 +207,7 @@ def parse_usage(raw: str) -> list[dict] | None:
         resets = re.sub(r'\s{2,}.*$', '', resets)
         spend_m = re.search(r'\$([\d.]+)\s*/\s*\$([\d.]+)\s*spent', text)
         extra = f'${spend_m.group(1)} / ${spend_m.group(2)}' if spend_m else None
-        display = {'Current session': 'Current session',
-                   'Current week': 'Current week',
-                   'Extra usage': 'Extra usage'}.get(key, key)
-        results.append({'name': display, 'percent': f'{percent}%',
+        results.append({'name': key, 'percent': f'{percent}%',
                         'extra': extra, 'resets': resets})
     return results
 
@@ -189,7 +237,11 @@ def main() -> None:
         )
         sys.exit(0)
 
-    raw = capture_usage_output()
+    try:
+        raw = capture_usage_output()
+    except RuntimeError as exc:
+        print(f'_Failed to collect `claude /usage`: {exc}_')
+        sys.exit(1)
 
     if not raw.strip():
         print('_Could not capture `claude /usage` output. Make sure `claude` is on your PATH._')

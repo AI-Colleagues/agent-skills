@@ -29,7 +29,7 @@ SAMPLE_OUTPUT = """\
 │  Directory:            ~                                               │
 │  Permissions:          Custom (workspace-write, on-request)            │
 │  Agents.md:            <none>                                          │
-│  Account:              shaojie.jiang1@gmail.com (Plus)                 │
+│  Account:              john.smith@example.com (Plus)                   │
 │  Collaboration mode:   Default                                         │
 │  Session:              019d7bd3-b85d-7eb2-8189-04dad7b0e01e            │
 │                                                                        │
@@ -225,9 +225,10 @@ def select_status_command(fd: int, buffer: bytearray) -> None:
 def capture_status_view(timeout_seconds: float) -> str:
     rows = 40
     cols = 140
-    startup_delay_seconds = 7.0
+    startup_delay_seconds = 2.5
     max_refresh_retries = 1
     master_fd: int | None = None
+    slave_fd: int | None = None
     process: subprocess.Popen[bytes] | None = None
 
     try:
@@ -250,7 +251,10 @@ def capture_status_view(timeout_seconds: float) -> str:
             env=env,
             text=False,
         )
-        os.close(slave_fd)
+        try:
+            os.close(slave_fd)
+        finally:
+            slave_fd = None
 
         buffer = bytearray()
         read_from_pty(master_fd, buffer, min(startup_delay_seconds, timeout_seconds))
@@ -272,6 +276,11 @@ def capture_status_view(timeout_seconds: float) -> str:
             raise RuntimeError("`codex` produced no output while requesting `/status`")
         raise RuntimeError("could not capture quota lines from the interactive status view")
     finally:
+        if slave_fd is not None:
+            try:
+                os.close(slave_fd)
+            except OSError:
+                pass
         if master_fd is not None:
             try:
                 os.close(master_fd)

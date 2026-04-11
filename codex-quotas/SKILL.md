@@ -5,12 +5,12 @@ description: Read Codex usage quotas and present the `5h limit` and `Weekly limi
 
 # Codex Quotas
 
-Run `python3 /Users/shaojiejiang/.codex/skills/codex-quotas/scripts/report_quotas.py` first. The helper opens the Codex slash-command palette in a PTY, selects `status`, handles ANSI escapes, box drawing characters, wrapped reset lines, and retries once when Codex returns the `refresh requested` interstitial.
+Run `python3 ~/.codex/skills/codex-quotas/scripts/report_quotas.py` first. The helper opens the Codex slash-command palette in a PTY, selects `status`, handles ANSI escapes, box drawing characters, wrapped reset lines, and retries once when Codex returns the `refresh requested` interstitial.
 
 ## Workflow
 
-- Run `python3 /Users/shaojiejiang/.codex/skills/codex-quotas/scripts/report_quotas.py`.
-- If the user already pasted raw `codex /status` output, run `python3 /Users/shaojiejiang/.codex/skills/codex-quotas/scripts/report_quotas.py --stdin` and feed the pasted block through stdin.
+- Run `python3 ~/.codex/skills/codex-quotas/scripts/report_quotas.py`.
+- If the user already pasted raw `codex /status` output, run `python3 ~/.codex/skills/codex-quotas/scripts/report_quotas.py --stdin` and feed the pasted block through stdin.
 - If the live attempt still fails after the built-in refresh retry, ask the user to paste the visible `codex /status` block.
 - Return only the Markdown table unless the helper reports a failure.
 
