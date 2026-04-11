@@ -1,6 +1,6 @@
 ---
 name: claude-quotas
-description: Check and report Claude usage quotas — current session, current week, and extra usage. Use this skill whenever the user asks about their Claude usage, quotas, rate limits, how much they've used, how much is left, when usage resets, or anything like "show my claude usage", "check my quotas", "how much have I used this week", "am I close to my limit", or "/claude-quotas". Always use this skill for quota-related queries — don't try to report usage without it.
+description: Check and report Claude usage quotas — current session and current week. Use this skill whenever the user asks about their Claude usage, quotas, rate limits, how much they've used, how much is left, when usage resets, or anything like "show my claude usage", "check my quotas", "how much have I used this week", "am I close to my limit", or "/claude-quotas". Always use this skill for quota-related queries — don't try to report usage without it.
 ---
 
 # Claude Quotas
@@ -25,10 +25,11 @@ If the script fails (e.g. `claude` not on PATH, pty capture timeout), fall back 
 
 After running the script, present the results like this:
 
+```markdown
 | Quota | Used | Resets |
 |-------|------|--------|
 | Current session | 1% | 1pm (Europe/Amsterdam) |
 | Current week | 25% | Apr 13 at 8am (Europe/Amsterdam) |
-| Extra usage | 1% ($1.36 / $100.00) | May 1 (Europe/Amsterdam) |
+```
 
 Keep it brief — just the table, no preamble. If the user asks follow-up questions about what the numbers mean, answer them.

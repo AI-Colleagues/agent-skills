@@ -18,7 +18,7 @@ Run the conversational search demo suite from the Orcheo examples. These demos s
 This skill requires the conversational search demo files from the Orcheo repository. Download only the demo files using git sparse checkout:
 
 ```bash
-git clone --filter=blob:none --sparse https://github.com/ShaojieJiang/orcheo.git orcheo-demos
+git clone --filter=blob:none --sparse https://github.com/AI-Colleagues/orcheo.git orcheo-demos
 cd orcheo-demos
 git sparse-checkout set examples/conversational_search
 ```

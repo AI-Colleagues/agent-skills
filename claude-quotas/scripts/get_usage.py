@@ -183,11 +183,15 @@ def parse_usage(raw: str) -> list[dict] | None:
     if 'only' in clean and ('subscription' in clean or 'available' in clean):
         return None
 
-    section_keys = ['Current session', 'Current week', 'Extra usage']
+    section_keys = ['Current session', 'Current week']
+    # Use the last occurrence of each key — the TUI redraws multiple times and
+    # earlier renders may be incomplete (missing the Resets line for the first
+    # section), so the last render is the authoritative one.
     section_spans: list[tuple[str, int, int]] = []
     for key in section_keys:
-        m = re.search(re.escape(key), clean, re.IGNORECASE)
-        if m:
+        all_m = list(re.finditer(re.escape(key), clean, re.IGNORECASE))
+        if all_m:
+            m = all_m[-1]
             section_spans.append((key, m.start(), m.end()))
 
     section_spans.sort(key=lambda x: x[1])
@@ -205,24 +209,17 @@ def parse_usage(raw: str) -> list[dict] | None:
         reset_m = re.search(r'Resets?\s+([^\r\n]+)', text)
         resets = reset_m.group(1).strip() if reset_m else '?'
         resets = re.sub(r'\s{2,}.*$', '', resets)
-        spend_m = re.search(r'\$([\d.]+)\s*/\s*\$([\d.]+)\s*spent', text)
-        extra = f'${spend_m.group(1)} / ${spend_m.group(2)}' if spend_m else None
-        results.append({'name': key, 'percent': f'{percent}%',
-                        'extra': extra, 'resets': resets})
+        results.append({'name': key, 'percent': f'{percent}%', 'resets': resets})
     return results
 
 
 def render_table(quotas: list[dict]) -> str:
-    rows = []
-    for q in quotas:
-        used = q['percent']
-        if q['extra']:
-            used += f' ({q["extra"]})'
-        rows.append((q['name'], used, q['resets']))
+    rows = [(q['name'], q['percent'], q['resets']) for q in quotas]
 
-    lines = ['| Quota | Used | Resets |', '|-------|------|--------|']
+    lines = ['```markdown', '| Quota | Used | Resets |', '|-------|------|--------|']
     for name, used, resets in rows:
         lines.append(f'| {name} | {used} | {resets} |')
+    lines.append('```')
     return '\n'.join(lines)
 
 
