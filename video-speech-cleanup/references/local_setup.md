@@ -46,7 +46,7 @@ Prefer official binary releases for FFmpeg and auto-editor, then add the executa
 
 ## Notes
 
-- **Python 3.9+** is required. The scripts use `timezone.utc` and type-union syntax available from Python 3.9/3.10.
+- **Python 3.10+** is required. The scripts use `timezone.utc` and type-union syntax available from Python 3.10+.
 - FFmpeg publishes source and links to OS/package builds from its download page.
 - auto-editor's docs recommend official binaries first, then platform installers such as Homebrew, with pip as a fallback.
 - If `auto-editor` can run from `./auto-editor` but not `auto-editor`, it is not on PATH.
