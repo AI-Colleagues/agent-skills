@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video Speech Cleanup"
+  short_description: "Clean speech videos with QA artifacts"
+  default_prompt: "Use $video-speech-cleanup to remove silences and speech disfluencies from this local video while saving QA artifacts."
