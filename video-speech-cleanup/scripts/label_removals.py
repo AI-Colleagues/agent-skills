@@ -11,7 +11,7 @@ import sys
 import uuid
 from pathlib import Path
 from typing import Any
-from urllib import request
+from urllib import error, request
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -282,9 +282,13 @@ def _chat_completion(
         method="POST",
     )
     context = ssl.create_default_context()
-    with request.urlopen(req, timeout=timeout, context=context) as response:
-        response_body = response.read().decode("utf-8")
-        request_id = response.headers.get("x-request-id")
+    try:
+        with request.urlopen(req, timeout=timeout, context=context) as response:
+            response_body = response.read().decode("utf-8")
+            request_id = response.headers.get("x-request-id")
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"OpenAI API request failed ({exc.code}): {body}") from exc
     return json.loads(response_body), request_id
 
 
@@ -386,16 +390,16 @@ def build_labels(
         labels.append(
             _safety_filter_label(
                 {
-                "id": f"cut_{len(labels) + 1:04d}",
-                "type": str(candidate["type"]),
-                "text": span_text,
-                "start": float(words[start_index]["start"]),
-                "end": float(words[end_index]["end"]),
-                "confidence": float(candidate["confidence"]),
-                "reason": str(candidate["reason"]),
-                "accepted": bool(candidate["accepted"]),
-                "start_word_index": start_index,
-                "end_word_index": end_index,
+                    "id": f"cut_{len(labels) + 1:04d}",
+                    "type": str(candidate["type"]),
+                    "text": span_text,
+                    "start": float(words[start_index]["start"]),
+                    "end": float(words[end_index]["end"]),
+                    "confidence": float(candidate["confidence"]),
+                    "reason": str(candidate["reason"]),
+                    "accepted": bool(candidate["accepted"]),
+                    "start_word_index": start_index,
+                    "end_word_index": end_index,
                 },
                 max_auto_discourse_duration=max_auto_discourse_duration,
                 semantic_terms=semantic_terms,
@@ -461,7 +465,7 @@ def main() -> int:
     parser.add_argument("--output-debug-json")
     parser.add_argument("--comparison-transcript")
     parser.add_argument("--api-key")
-    parser.add_argument("--model-id", default="gpt-5.4-mini")
+    parser.add_argument("--model-id", default="gpt-4.1-mini")
     parser.add_argument("--language-hint")
     parser.add_argument("--fillers", default=",".join(DEFAULT_FILLERS))
     parser.add_argument("--catchphrases", default="|".join(DEFAULT_CATCHPHRASES))

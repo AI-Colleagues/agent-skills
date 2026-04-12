@@ -9,7 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,8 @@ from render_from_labels import render  # noqa: E402
 
 
 def _slug(value: str) -> str:
-    return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in value).strip("-")
+    slug = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in value).strip("-")
+    return slug[:80]
 
 
 def _run(command: list[str], log_path: Path | None = None) -> None:
@@ -41,7 +42,10 @@ def _run(command: list[str], log_path: Path | None = None) -> None:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("w", encoding="utf-8") as log:
         log.write("$ " + " ".join(command) + "\n\n")
-        subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(f"Command failed (exit {exc.returncode}), see log: {log_path}") from exc
 
 
 def _version(command: str) -> str | None:
@@ -188,7 +192,7 @@ def process(args: argparse.Namespace) -> Path:
     if not label_api_key:
         raise RuntimeError("Provide --label-api-key, set OPENAI_API_KEY, or store it in a nearby .env.")
 
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = Path(args.output_root).expanduser().resolve() / f"{_slug(source.stem)}-{timestamp}"
     input_dir = run_dir / "input"
     audio_dir = run_dir / "audio"
@@ -211,7 +215,7 @@ def process(args: argparse.Namespace) -> Path:
     normalize_log_path = input_dir / "normalize_source.log"
 
     manifest: dict[str, Any] = {
-        "created_at": datetime.now(UTC).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "source_path": str(source),
         "run_dir": str(run_dir),
         "tools": {
@@ -387,7 +391,7 @@ def main() -> int:
     parser.add_argument("--api-key")
     parser.add_argument("--label-api-key")
     parser.add_argument("--model-id", default="scribe_v2")
-    parser.add_argument("--label-model-id", default="gpt-5.4-mini")
+    parser.add_argument("--label-model-id", default="gpt-4.1-mini")
     parser.add_argument("--language-code")
     parser.add_argument("--label-language")
     parser.add_argument("--diarize", action=argparse.BooleanOptionalAction, default=True)

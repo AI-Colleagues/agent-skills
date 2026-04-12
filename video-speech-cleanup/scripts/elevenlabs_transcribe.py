@@ -12,7 +12,7 @@ import sys
 import uuid
 from pathlib import Path
 from typing import Any
-from urllib import request
+from urllib import error, request
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -96,8 +96,12 @@ def transcribe(
         method="POST",
     )
     context = ssl.create_default_context()
-    with request.urlopen(req, timeout=timeout, context=context) as response:
-        payload = response.read().decode("utf-8")
+    try:
+        with request.urlopen(req, timeout=timeout, context=context) as response:
+            payload = response.read().decode("utf-8")
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"ElevenLabs API request failed ({exc.code}): {body}") from exc
     return json.loads(payload)
 
 

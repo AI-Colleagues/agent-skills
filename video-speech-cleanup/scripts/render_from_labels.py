@@ -18,7 +18,7 @@ BLACK_DURATION_RE = re.compile(r"black_duration:(?P<duration>\d+(?:\.\d+)?)")
 def _accepted_spans(labels_doc: dict[str, Any], padding: float) -> list[tuple[float, float]]:
     spans: list[tuple[float, float]] = []
     for label in labels_doc.get("labels", []):
-        if not label.get("accepted", True):
+        if not label.get("accepted", False):
             continue
         start = max(0.0, float(label["start"]) - padding)
         end = max(start, float(label["end"]) + padding)
