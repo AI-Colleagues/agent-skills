@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Quotas"
+  short_description: "Extract Codex 5h and weekly quotas"
+  default_prompt: "Use $codex-quotas to show my current Codex 5h and weekly quota in a Markdown table."

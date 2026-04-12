@@ -1,6 +1,6 @@
 # Skills
 
-> **Part of the [Orcheo](https://github.com/ShaojieJiang/orcheo) project** - A workflow orchestration platform built on LangGraph.
+> **Part of the [Orcheo](https://github.com/AI-Colleagues/orcheo) project** - A workflow orchestration platform built on LangGraph.
 
 This directory contains AI agent skills used by this repository. Each skill
 defines how an AI agent should help with a specific workflow.
