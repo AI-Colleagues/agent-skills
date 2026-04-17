@@ -80,13 +80,13 @@ class _OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
         if _CALLBACK.result.code:
-            html = "<html><body><h2>Authorization received. You can return to the terminal.</h2></body></html>"
+            response_html = "<html><body><h2>Authorization received. You can return to the terminal.</h2></body></html>"
         else:
-            html = (
+            response_html = (
                 f"<html><body><h2>Authorization failed.</h2>"
                 f"<p>{html.escape(_CALLBACK.result.error or 'unknown_error')}</p></body></html>"
             )
-        self.wfile.write(html.encode("utf-8"))
+        self.wfile.write(response_html.encode("utf-8"))
 
     def log_message(self, fmt: str, *args: Any) -> None:
         return
@@ -242,11 +242,13 @@ def main() -> None:
         refresh_token = str(token.get("refresh_token") or "").strip()
         id_token = str(token.get("id_token") or "").strip()
 
+        if not access_token:
+            raise RuntimeError("Token exchange returned no access_token")
+
         print("\nStoring credentials in Orcheo vault...")
         stored = 0
-        if access_token:
-            _store_credential("linkedin_access_token", access_token, args.profile)
-            stored += 1
+        _store_credential("linkedin_access_token", access_token, args.profile)
+        stored += 1
         if refresh_token:
             _store_credential("linkedin_refresh_token", refresh_token, args.profile)
             stored += 1

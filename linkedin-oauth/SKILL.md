@@ -64,10 +64,11 @@ Guide the user through these steps (they do everything in their browser and term
 Once both env vars are confirmed present, run the script. It will open a browser window for the user to authorize the app, then silently store the tokens.
 
 ```bash
-python <skill_dir>/scripts/linkedin_oauth_store.py [--profile <profile_name>]
+pip install -r "$CODEX_HOME/skills/linkedin-oauth/requirements.txt"
+python "$CODEX_HOME/skills/linkedin-oauth/scripts/linkedin_oauth_store.py" [--profile <profile_name>]
 ```
 
-Replace `<skill_dir>` with the absolute path to this skill's directory.
+If this skill is being run from a repository checkout instead of an installed path, use the equivalent local path to `linkedin-oauth/scripts/linkedin_oauth_store.py`.
 Include `--profile <profile_name>` only if the user specified one.
 
 The script:
