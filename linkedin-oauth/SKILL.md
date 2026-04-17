@@ -98,3 +98,4 @@ After the script exits:
 - The script inherits `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` from the current shell environment. If the user set them in a different terminal session, they must re-export in the same session where the agent is running, or use `LINKEDIN_CLIENT_ID=xxx LINKEDIN_CLIENT_SECRET=yyy python ...` prefix.
 - Port 8765 must be free when the script runs. If it is in use, ask the user to set `LINKEDIN_REDIRECT_URI` to a different port (e.g., `http://127.0.0.1:9876/callback`) and update the LinkedIn app's redirect URL to match.
 - Scope override: the user can set `LINKEDIN_SCOPES` env var to customize requested scopes.
+- By default, the script first requests `w_organization_social` in addition to member/OpenID scopes and automatically retries without it if the app lacks Marketing Developer Platform access.

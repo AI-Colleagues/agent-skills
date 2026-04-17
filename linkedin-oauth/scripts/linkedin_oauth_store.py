@@ -19,6 +19,7 @@ CLI args:
 from __future__ import annotations
 
 import argparse
+import html
 import os
 import secrets
 import subprocess
@@ -43,7 +44,8 @@ SCOPES_OVERRIDE = os.environ.get("LINKEDIN_SCOPES", "").strip()
 
 AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization"
 TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
-DEFAULT_SCOPES = ["openid", "profile", "w_member_social", "w_organization_social"]
+BASE_SCOPES = ["openid", "profile", "w_member_social"]
+ORG_SCOPE = "w_organization_social"
 
 
 @dataclass
@@ -82,7 +84,7 @@ class _OAuthCallbackHandler(BaseHTTPRequestHandler):
         else:
             html = (
                 f"<html><body><h2>Authorization failed.</h2>"
-                f"<p>{_CALLBACK.result.error or 'unknown_error'}</p></body></html>"
+                f"<p>{html.escape(_CALLBACK.result.error or 'unknown_error')}</p></body></html>"
             )
         self.wfile.write(html.encode("utf-8"))
 
@@ -109,7 +111,15 @@ def _resolve_scopes() -> list[str]:
                 seen.add(s)
                 unique.append(s)
         return unique
-    return list(DEFAULT_SCOPES)
+    return list(BASE_SCOPES)
+
+
+def _wait_for_callback(timeout_seconds: int = 300) -> OAuthCallbackResult:
+    _CALLBACK.result = OAuthCallbackResult()
+    _CALLBACK.event.clear()
+    if not _CALLBACK.event.wait(timeout=timeout_seconds):
+        raise RuntimeError("Timed out waiting for OAuth callback (5 min)")
+    return _CALLBACK.result
 
 
 def _build_auth_url(state: str, scopes: list[str]) -> str:
@@ -179,33 +189,51 @@ def main() -> None:
         print("ERROR: Missing required env var: LINKEDIN_CLIENT_SECRET", file=sys.stderr)
         sys.exit(1)
 
-    state = secrets.token_urlsafe(24)
     scopes = _resolve_scopes()
 
     print("Starting local callback server...")
     server = _start_local_server()
 
     try:
-        auth_url = _build_auth_url(state, scopes)
-        print(f"Requesting LinkedIn scopes: {' '.join(scopes)}")
-        print("\nOpen this URL if your browser does not launch:\n")
-        print(auth_url)
-        print("\nWaiting for LinkedIn authorization callback...")
-        webbrowser.open(auth_url, new=1, autoraise=True)
+        default_scopes = list(scopes)
+        if not SCOPES_OVERRIDE and ORG_SCOPE not in default_scopes:
+            default_scopes.append(ORG_SCOPE)
 
-        if not _CALLBACK.event.wait(timeout=300):
-            raise RuntimeError("Timed out waiting for OAuth callback (5 min)")
+        for attempt, requested_scopes in enumerate((default_scopes, scopes), start=1):
+            state = secrets.token_urlsafe(24)
+            auth_url = _build_auth_url(state, requested_scopes)
+            print(f"Requesting LinkedIn scopes: {' '.join(requested_scopes)}")
+            print("\nOpen this URL if your browser does not launch:\n")
+            print(auth_url)
+            print("\nWaiting for LinkedIn authorization callback...")
+            webbrowser.open(auth_url, new=1, autoraise=True)
 
-        result = _CALLBACK.result
-        if result.error:
-            raise RuntimeError(
-                f"OAuth authorization failed: {result.error} "
-                f"{result.error_description or ''}".strip()
-            )
-        if result.state != state:
-            raise RuntimeError("State mismatch; possible CSRF or stale callback")
-        if not result.code:
-            raise RuntimeError("No authorization code received")
+            result = _wait_for_callback()
+            if result.error:
+                error_value = (result.error or "").strip().lower()
+                should_retry_without_org_scope = (
+                    attempt == 1
+                    and not SCOPES_OVERRIDE
+                    and ORG_SCOPE in requested_scopes
+                    and error_value in {"invalid_scope", "unauthorized_scope_error"}
+                )
+                if should_retry_without_org_scope:
+                    print(
+                        "\nLinkedIn rejected organization posting scope for this app. "
+                        "Retrying automatically with member/OpenID scopes only..."
+                    )
+                    continue
+                raise RuntimeError(
+                    f"OAuth authorization failed: {result.error} "
+                    f"{result.error_description or ''}".strip()
+                )
+            if result.state != state:
+                raise RuntimeError("State mismatch; possible CSRF or stale callback")
+            if not result.code:
+                raise RuntimeError("No authorization code received")
+            break
+        else:
+            raise RuntimeError("OAuth authorization failed after retries")
 
         print("\nExchanging authorization code for tokens...")
         token = _exchange_code(result.code)
