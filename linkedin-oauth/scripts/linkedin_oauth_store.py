@@ -247,6 +247,10 @@ def main() -> None:
 
         print("\nStoring credentials in Orcheo vault...")
         stored = 0
+        _store_credential("linkedin_client_id", CLIENT_ID, args.profile)
+        stored += 1
+        _store_credential("linkedin_client_secret", CLIENT_SECRET, args.profile)
+        stored += 1
         _store_credential("linkedin_access_token", access_token, args.profile)
         stored += 1
         if refresh_token:

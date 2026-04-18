@@ -64,7 +64,7 @@ Guide the user through these steps (they do everything in their browser and term
 Once both env vars are confirmed present, run the script. It will open a browser window for the user to authorize the app, then silently store the tokens.
 
 ```bash
-pip install -r "$CODEX_HOME/skills/linkedin-oauth/requirements.txt"
+uv pip install -r "$CODEX_HOME/skills/linkedin-oauth/requirements.txt"
 python "$CODEX_HOME/skills/linkedin-oauth/scripts/linkedin_oauth_store.py" [--profile <profile_name>]
 ```
 
@@ -89,7 +89,7 @@ Tell them: "Your browser should open the LinkedIn authorization page. Please sig
 
 After the script exits:
 
-- **Exit 0**: Tell the user which credentials were stored (the script prints the names). Remind them the tokens are now available as `linkedin_access_token`, `linkedin_refresh_token`, and optionally `linkedin_id_token` in the Orcheo vault.
+- **Exit 0**: Tell the user which credentials were stored (the script prints the names). Remind them the credentials are now available as `linkedin_client_id`, `linkedin_client_secret`, `linkedin_access_token`, `linkedin_refresh_token`, and optionally `linkedin_id_token` in the Orcheo vault.
 - **Non-zero exit / error output**: Show the error message from the script and help diagnose the issue (common causes: wrong redirect URI, missing product access on the LinkedIn app, env vars not exported to the current shell).
 
 ---
