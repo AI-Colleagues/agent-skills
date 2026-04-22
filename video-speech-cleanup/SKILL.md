@@ -1,6 +1,10 @@
 ---
 name: video-speech-cleanup
 description: Local video speech cleanup with ElevenLabs Scribe v2, OpenAI LLM labeling, auto-editor, and FFmpeg. Use when Codex needs to remove silences, filler words, catchphrases, stutters, false starts, or repetitions from local audio/video files while saving QA artifacts such as normalized sources, extracted audio, transcripts, word timestamps, removal labels, manifests, and final renders.
+license: MIT
+metadata:
+  author: "AI Colleagues"
+  version: "0.1"
 ---
 
 # Video Speech Cleanup

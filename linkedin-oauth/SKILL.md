@@ -1,6 +1,10 @@
 ---
 name: linkedin-oauth
 description: Obtain LinkedIn OAuth tokens and store them directly into the Orcheo vault as credentials. Use this skill whenever the user wants to authenticate with LinkedIn, set up LinkedIn credentials for Orcheo, run the LinkedIn OAuth flow, or store linkedin_access_token / linkedin_refresh_token / linkedin_id_token. Also trigger when the user says "connect LinkedIn", "LinkedIn auth", "set up LinkedIn posting", or any variant of needing LinkedIn tokens ready for use.
+license: MIT
+metadata:
+  author: "AI Colleagues"
+  version: "0.1"
 ---
 
 # LinkedIn OAuth → Orcheo Vault
