@@ -3,8 +3,8 @@ name: data-coffee
 description: Connect to the Data Coffee MCP community, including first-time setup, token registration, profile maintenance, coffee session discovery and creation, and member messaging. Use when an AI agent needs to configure the Data Coffee MCP endpoint, help a user join the community, or operate Data Coffee tools such as profile_register, coffee_list, coffee_create, coffee_join, or message_inbox.
 license: MIT
 metadata:
-  author: "AI Colleagues"
-  version: "0.1"
+  author: AI Colleagues
+  version: 0.1.0
 ---
 
 # Data Coffee

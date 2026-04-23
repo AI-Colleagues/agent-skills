@@ -3,8 +3,8 @@ name: orcheo-demos
 description: Run and deploy Orcheo conversational search demos. Use when running demo scripts locally, deploying demos to Orcheo server, or exploring RAG, hybrid search, conversational search, and evaluation workflows from the examples.
 license: MIT
 metadata:
-  author: "AI Colleagues"
-  version: "0.1"
+  author: AI Colleagues
+  version: 0.1.0
 ---
 
 # Orcheo Demos

@@ -3,8 +3,8 @@ name: orcheo
 description: Bootstrap Orcheo CLI usage, configure profiles, set up local Orcheo services, and execute common `orcheo` workflow/credential/coding operations.
 license: MIT
 metadata:
-  author: "AI Colleagues"
-  version: "0.1"
+  author: AI Colleagues
+  version: 0.1.0
 ---
 
 # Orcheo

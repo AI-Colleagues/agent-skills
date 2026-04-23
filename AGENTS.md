@@ -16,10 +16,10 @@ Every `SKILL.md` must include the following frontmatter fields. Reviewers should
 ```yaml
 name:
 description:
-license:
+license: MIT
 metadata:
-  author:
-  version:
+  author: AI Colleagues   # org name for org-owned skills; use your name for individual contributions
+  version: 0.1.0          # semver; increment on meaningful changes
 ```
 
 ## Build, Test, and Development Commands
