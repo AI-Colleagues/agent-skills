@@ -1,6 +1,10 @@
 ---
 name: claude-quotas
 description: Check and report Claude usage quotas — current session and current week. Use this skill whenever the user asks about their Claude usage, quotas, rate limits, how much they've used, how much is left, when usage resets, or anything like "show my claude usage", "check my quotas", "how much have I used this week", "am I close to my limit", or "/claude-quotas". Always use this skill for quota-related queries — don't try to report usage without it.
+license: MIT
+metadata:
+  author: AI Colleagues
+  version: 0.1.0
 ---
 
 # Claude Quotas

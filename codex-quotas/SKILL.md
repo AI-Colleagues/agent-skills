@@ -1,6 +1,10 @@
 ---
 name: codex-quotas
 description: Read Codex usage quotas and present the `5h limit` and `Weekly limit` rows as a Markdown table. Use when Codex needs to check current usage, remaining quota, reset times, or summarize the output of `codex /status`.
+license: MIT
+metadata:
+  author: AI Colleagues
+  version: 0.1.0
 ---
 
 # Codex Quotas
