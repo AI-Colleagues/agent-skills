@@ -2,7 +2,6 @@
 """Render a final cut from accepted removal labels using auto-editor."""
 
 from __future__ import annotations
-
 import argparse
 import json
 import re
@@ -15,7 +14,9 @@ from typing import Any
 BLACK_DURATION_RE = re.compile(r"black_duration:(?P<duration>\d+(?:\.\d+)?)")
 
 
-def _accepted_spans(labels_doc: dict[str, Any], padding: float) -> list[tuple[float, float]]:
+def _accepted_spans(
+    labels_doc: dict[str, Any], padding: float
+) -> list[tuple[float, float]]:
     spans: list[tuple[float, float]] = []
     for label in labels_doc.get("labels", []):
         if not label.get("accepted", False):
@@ -59,7 +60,11 @@ def _duration(probe: dict[str, Any]) -> float:
 
 
 def _streams(probe: dict[str, Any], codec_type: str) -> list[dict[str, Any]]:
-    return [stream for stream in probe.get("streams", []) if stream.get("codec_type") == codec_type]
+    return [
+        stream
+        for stream in probe.get("streams", [])
+        if stream.get("codec_type") == codec_type
+    ]
 
 
 def _bitrate(stream: dict[str, Any] | None) -> int | None:
@@ -93,7 +98,9 @@ def _black_stats(path: Path) -> dict[str, float]:
         text=True,
     )
     combined = result.stdout + "\n" + result.stderr
-    black_duration = sum(float(match.group("duration")) for match in BLACK_DURATION_RE.finditer(combined))
+    black_duration = sum(
+        float(match.group("duration")) for match in BLACK_DURATION_RE.finditer(combined)
+    )
     probe = _probe(path)
     duration = _duration(probe)
     black_ratio = black_duration / duration if duration > 0 else 0.0
@@ -122,18 +129,30 @@ def validate_render(
     errors: list[str] = []
 
     if len(output_video_streams) != 1:
-        errors.append(f"expected exactly one output video stream, found {len(output_video_streams)}")
+        errors.append(
+            f"expected exactly one output video stream, found {len(output_video_streams)}"
+        )
     if source_audio_streams and len(output_audio_streams) != 1:
-        errors.append(f"expected exactly one output audio stream, found {len(output_audio_streams)}")
+        errors.append(
+            f"expected exactly one output audio stream, found {len(output_audio_streams)}"
+        )
     if black_stats["black_ratio"] > max_black_ratio:
         errors.append(
             "output appears mostly black "
             f"(black_ratio={black_stats['black_ratio']:.3f}, threshold={max_black_ratio:.3f})"
         )
 
-    source_video_bitrate = _bitrate(source_video_streams[0] if source_video_streams else None)
-    output_video_bitrate = _bitrate(output_video_streams[0] if output_video_streams else None)
-    if source_video_bitrate and output_video_bitrate and output_video_bitrate < max(64000, int(source_video_bitrate * 0.05)):
+    source_video_bitrate = _bitrate(
+        source_video_streams[0] if source_video_streams else None
+    )
+    output_video_bitrate = _bitrate(
+        output_video_streams[0] if output_video_streams else None
+    )
+    if (
+        source_video_bitrate
+        and output_video_bitrate
+        and output_video_bitrate < max(64000, int(source_video_bitrate * 0.05))
+    ):
         warnings.append(
             "output video bitrate dropped sharply compared with the source "
             f"({output_video_bitrate} vs {source_video_bitrate} bps)"
@@ -155,7 +174,9 @@ def validate_render(
         "errors": errors,
     }
     if errors:
-        raise RuntimeError(f"Render validation failed: {json.dumps(validation, ensure_ascii=False)}")
+        raise RuntimeError(
+            f"Render validation failed: {json.dumps(validation, ensure_ascii=False)}"
+        )
     return validation
 
 
@@ -180,10 +201,14 @@ def render(
         for start, end in spans:
             command.extend(["--cut-out", f"{start:.3f}sec,{end:.3f}sec"])
     subprocess.run(command, check=True)
-    validation = validate_render(input_video, output_video, max_black_ratio=max_black_ratio)
+    validation = validate_render(
+        input_video, output_video, max_black_ratio=max_black_ratio
+    )
     if validation_json is not None:
         validation_json.parent.mkdir(parents=True, exist_ok=True)
-        validation_json.write_text(json.dumps(validation, indent=2, ensure_ascii=False), encoding="utf-8")
+        validation_json.write_text(
+            json.dumps(validation, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
     return command
 
 
@@ -207,7 +232,9 @@ def main() -> int:
         args.padding,
         edit=args.edit,
         margin=args.margin,
-        validation_json=Path(args.validation_json).expanduser().resolve() if args.validation_json else None,
+        validation_json=Path(args.validation_json).expanduser().resolve()
+        if args.validation_json
+        else None,
         max_black_ratio=args.max_black_ratio,
     )
     if args.command_log:

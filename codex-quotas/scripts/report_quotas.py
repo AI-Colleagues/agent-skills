@@ -2,7 +2,6 @@
 """Render Codex quota information from `codex /status` as a Markdown table."""
 
 from __future__ import annotations
-
 import argparse
 import fcntl
 import json
@@ -10,13 +9,14 @@ import os
 import pty
 import re
 import select
+import struct
 import subprocess
 import sys
 import termios
 import time
-import struct
 from datetime import datetime
 from pathlib import Path
+
 
 SAMPLE_OUTPUT = """\
 ╭────────────────────────────────────────────────────────────────────────╮
@@ -44,7 +44,9 @@ QUOTA_RE = re.compile(
     r"^\s*(5h limit|Weekly limit):\s*(?:\[[^\]]*\]\s*)?(\d+%)\s+left(?:\s*\(([^)]*)\))?\s*$"
 )
 WRAPPED_RESET_RE = re.compile(r"^\s*\(([^)]*resets[^)]*)\)\s*$", re.IGNORECASE)
-REFRESH_RE = re.compile(r"Limits:\s+refresh requested; run /status again shortly\.", re.IGNORECASE)
+REFRESH_RE = re.compile(
+    r"Limits:\s+refresh requested; run /status again shortly\.", re.IGNORECASE
+)
 SESSION_ROOT = Path.home() / ".codex" / "sessions"
 MAX_SESSION_FILES = 20
 
@@ -121,18 +123,29 @@ def percent_left(used_percent: int | float) -> str:
     return f"{int(round(left))}%"
 
 
-def parse_session_rate_limits(rate_limits: dict[str, object]) -> dict[str, dict[str, str]]:
+def parse_session_rate_limits(
+    rate_limits: dict[str, object],
+) -> dict[str, dict[str, str]]:
     primary = rate_limits.get("primary")
     secondary = rate_limits.get("secondary")
     if not isinstance(primary, dict) or not isinstance(secondary, dict):
-        raise RuntimeError("recent session data did not include primary and secondary limits")
+        raise RuntimeError(
+            "recent session data did not include primary and secondary limits"
+        )
 
     primary_used = primary.get("used_percent")
     primary_reset = primary.get("resets_at")
     secondary_used = secondary.get("used_percent")
     secondary_reset = secondary.get("resets_at")
-    if primary_used is None or primary_reset is None or secondary_used is None or secondary_reset is None:
-        raise RuntimeError("recent session data was missing usage percentages or reset timestamps")
+    if (
+        primary_used is None
+        or primary_reset is None
+        or secondary_used is None
+        or secondary_reset is None
+    ):
+        raise RuntimeError(
+            "recent session data was missing usage percentages or reset timestamps"
+        )
 
     return {
         "5h limit": {
@@ -189,7 +202,9 @@ def load_quotas_from_recent_sessions() -> dict[str, dict[str, str]]:
             if isinstance(rate_limits, dict):
                 return parse_session_rate_limits(rate_limits)
 
-    raise RuntimeError("could not find recent Codex rate limit data in ~/.codex/sessions")
+    raise RuntimeError(
+        "could not find recent Codex rate limit data in ~/.codex/sessions"
+    )
 
 
 def buffer_contains_quotas(buffer: bytearray) -> bool:
@@ -274,7 +289,9 @@ def capture_status_view(timeout_seconds: float) -> str:
 
         if not buffer.strip():
             raise RuntimeError("`codex` produced no output while requesting `/status`")
-        raise RuntimeError("could not capture quota lines from the interactive status view")
+        raise RuntimeError(
+            "could not capture quota lines from the interactive status view"
+        )
     finally:
         if slave_fd is not None:
             try:

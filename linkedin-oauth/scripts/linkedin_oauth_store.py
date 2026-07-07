@@ -17,7 +17,6 @@ CLI args:
 """
 
 from __future__ import annotations
-
 import argparse
 import html
 import os
@@ -30,7 +29,6 @@ import webbrowser
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
-
 import requests
 
 
@@ -160,9 +158,13 @@ def _store_credential(name: str, value: str, profile: str | None) -> None:
     if profile:
         cmd += ["--profile", profile]
     cmd += [
-        "credential", "create", name,
-        "--provider", "LinkedIn",
-        "--secret", value,
+        "credential",
+        "create",
+        name,
+        "--provider",
+        "LinkedIn",
+        "--secret",
+        value,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -186,7 +188,9 @@ def main() -> None:
         print("ERROR: Missing required env var: LINKEDIN_CLIENT_ID", file=sys.stderr)
         sys.exit(1)
     if not CLIENT_SECRET:
-        print("ERROR: Missing required env var: LINKEDIN_CLIENT_SECRET", file=sys.stderr)
+        print(
+            "ERROR: Missing required env var: LINKEDIN_CLIENT_SECRET", file=sys.stderr
+        )
         sys.exit(1)
 
     scopes = _resolve_scopes()

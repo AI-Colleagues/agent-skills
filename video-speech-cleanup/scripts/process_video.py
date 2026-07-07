@@ -2,7 +2,6 @@
 """Run the local video speech cleanup pipeline and preserve QA artifacts."""
 
 from __future__ import annotations
-
 import argparse
 import json
 import os
@@ -13,11 +12,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from env_loader import find_env_value  # noqa: E402
 from elevenlabs_transcribe import transcribe, write_outputs  # noqa: E402
+from env_loader import find_env_value  # noqa: E402
 from label_removals import (  # noqa: E402
     DEFAULT_CATCHPHRASES,
     DEFAULT_FILLERS,
@@ -31,7 +31,9 @@ from render_from_labels import render  # noqa: E402
 
 
 def _slug(value: str) -> str:
-    slug = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in value).strip("-")
+    slug = "".join(
+        ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in value
+    ).strip("-")
     return slug[:80]
 
 
@@ -45,7 +47,9 @@ def _run(command: list[str], log_path: Path | None = None) -> None:
         try:
             subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as exc:
-            raise RuntimeError(f"Command failed (exit {exc.returncode}), see log: {log_path}") from exc
+            raise RuntimeError(
+                f"Command failed (exit {exc.returncode}), see log: {log_path}"
+            ) from exc
 
 
 def _version(command: str) -> str | None:
@@ -54,7 +58,9 @@ def _version(command: str) -> str | None:
         return None
     try:
         result = subprocess.run(
-            [command, "-version"] if command != "auto-editor" else [command, "--version"],
+            [command, "-version"]
+            if command != "auto-editor"
+            else [command, "--version"],
             check=False,
             capture_output=True,
             text=True,
@@ -71,7 +77,11 @@ def _write_json(path: Path, payload: Any) -> None:
 
 
 def _require_tools() -> None:
-    missing = [tool for tool in ("ffmpeg", "ffprobe", "auto-editor") if shutil.which(tool) is None]
+    missing = [
+        tool
+        for tool in ("ffmpeg", "ffprobe", "auto-editor")
+        if shutil.which(tool) is None
+    ]
     if missing:
         raise RuntimeError(f"Missing required tool(s): {', '.join(missing)}")
 
@@ -95,7 +105,9 @@ def _probe(path: Path) -> dict[str, Any]:
     return json.loads(result.stdout)
 
 
-def _normalize_source_video(source_copy: Path, normalized_source: Path, log_path: Path) -> None:
+def _normalize_source_video(
+    source_copy: Path, normalized_source: Path, log_path: Path
+) -> None:
     _run(
         [
             "ffmpeg",
@@ -128,7 +140,9 @@ def _normalize_source_video(source_copy: Path, normalized_source: Path, log_path
     )
 
 
-def _env_available(name: str, *, cli_value: str | None, search_roots: tuple[Path | str | None, ...]) -> tuple[bool, str]:
+def _env_available(
+    name: str, *, cli_value: str | None, search_roots: tuple[Path | str | None, ...]
+) -> tuple[bool, str]:
     value, source = find_env_value(name, *search_roots)
     if cli_value:
         return True, "cli-arg"
@@ -152,7 +166,10 @@ def preflight(args: argparse.Namespace) -> dict[str, Any]:
         search_roots=search_roots,
     )
     diagnostics = {
-        "ok": source.exists() and not missing_tools and elevenlabs_available and openai_available,
+        "ok": source.exists()
+        and not missing_tools
+        and elevenlabs_available
+        and openai_available,
         "input_video": str(source),
         "input_exists": source.exists(),
         "tools": tools,
@@ -182,25 +199,41 @@ def process(args: argparse.Namespace) -> Path:
     if not source.exists():
         raise FileNotFoundError(source)
 
-    elevenlabs_api_key, _ = find_env_value("ELEVENLABS_API_KEY", source, args.output_root)
+    elevenlabs_api_key, _ = find_env_value(
+        "ELEVENLABS_API_KEY", source, args.output_root
+    )
     elevenlabs_api_key = args.api_key or elevenlabs_api_key
     if not elevenlabs_api_key:
-        raise RuntimeError("Provide --api-key, set ELEVENLABS_API_KEY, or store it in a nearby .env.")
+        raise RuntimeError(
+            "Provide --api-key, set ELEVENLABS_API_KEY, or store it in a nearby .env."
+        )
 
     label_api_key, _ = find_env_value("OPENAI_API_KEY", source, args.output_root)
     label_api_key = args.label_api_key or label_api_key
     if not label_api_key:
-        raise RuntimeError("Provide --label-api-key, set OPENAI_API_KEY, or store it in a nearby .env.")
+        raise RuntimeError(
+            "Provide --label-api-key, set OPENAI_API_KEY, or store it in a nearby .env."
+        )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    run_dir = Path(args.output_root).expanduser().resolve() / f"{_slug(source.stem)}-{timestamp}"
+    run_dir = (
+        Path(args.output_root).expanduser().resolve()
+        / f"{_slug(source.stem)}-{timestamp}"
+    )
     input_dir = run_dir / "input"
     audio_dir = run_dir / "audio"
     silence_dir = run_dir / "silence"
     transcripts_dir = run_dir / "transcripts"
     labels_dir = run_dir / "labels"
     renders_dir = run_dir / "renders"
-    for directory in (input_dir, audio_dir, silence_dir, transcripts_dir, labels_dir, renders_dir):
+    for directory in (
+        input_dir,
+        audio_dir,
+        silence_dir,
+        transcripts_dir,
+        labels_dir,
+        renders_dir,
+    ):
         directory.mkdir(parents=True, exist_ok=True)
 
     source_copy = input_dir / f"source_video{source.suffix}"
@@ -231,10 +264,18 @@ def process(args: argparse.Namespace) -> Path:
             "auto_editor_edit": args.edit,
             "skip_no_verbatim": args.skip_no_verbatim,
             "label_model_id": args.label_model_id,
-            "fillers": [item.strip() for item in args.fillers.split(",") if item.strip()],
-            "catchphrases": [item.strip() for item in args.catchphrases.split("|") if item.strip()],
-            "protected_terms": [item.strip() for item in args.protected_terms.split("|") if item.strip()],
-            "semantic_terms": [item.strip() for item in args.semantic_terms.split("|") if item.strip()],
+            "fillers": [
+                item.strip() for item in args.fillers.split(",") if item.strip()
+            ],
+            "catchphrases": [
+                item.strip() for item in args.catchphrases.split("|") if item.strip()
+            ],
+            "protected_terms": [
+                item.strip() for item in args.protected_terms.split("|") if item.strip()
+            ],
+            "semantic_terms": [
+                item.strip() for item in args.semantic_terms.split("|") if item.strip()
+            ],
             "use_comparison_hint": args.use_comparison_hint,
             "max_auto_discourse_duration": args.max_auto_discourse_duration,
             "max_black_ratio": args.max_black_ratio,
@@ -252,7 +293,20 @@ def process(args: argparse.Namespace) -> Path:
 
         extracted_audio = audio_dir / "extracted.wav"
         normalized_audio = audio_dir / "normalized.wav"
-        _run(["ffmpeg", "-y", "-i", str(normalized_source), "-vn", "-ac", "1", "-ar", "16000", str(extracted_audio)])
+        _run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(normalized_source),
+                "-vn",
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                str(extracted_audio),
+            ]
+        )
         _run(
             [
                 "ffmpeg",
@@ -320,10 +374,18 @@ def process(args: argparse.Namespace) -> Path:
             model_id=args.label_model_id,
             comparison_text=comparison_text,
             language_hint=args.label_language or args.language_code,
-            fillers=tuple(item.strip() for item in args.fillers.split(",") if item.strip()),
-            catchphrases=tuple(item.strip() for item in args.catchphrases.split("|") if item.strip()),
-            protected_terms=tuple(item.strip() for item in args.protected_terms.split("|") if item.strip()),
-            semantic_terms=tuple(item.strip() for item in args.semantic_terms.split("|") if item.strip()),
+            fillers=tuple(
+                item.strip() for item in args.fillers.split(",") if item.strip()
+            ),
+            catchphrases=tuple(
+                item.strip() for item in args.catchphrases.split("|") if item.strip()
+            ),
+            protected_terms=tuple(
+                item.strip() for item in args.protected_terms.split("|") if item.strip()
+            ),
+            semantic_terms=tuple(
+                item.strip() for item in args.semantic_terms.split("|") if item.strip()
+            ),
             max_auto_discourse_duration=args.max_auto_discourse_duration,
             timeout=args.label_timeout,
         )
@@ -368,8 +430,12 @@ def process(args: argparse.Namespace) -> Path:
             "final_video": str(final_video.relative_to(run_dir)),
         }
         if not args.skip_no_verbatim:
-            manifest["artifacts"]["clean_transcript_json"] = str(clean_json.relative_to(run_dir))
-            manifest["artifacts"]["clean_transcript_text"] = str(clean_txt.relative_to(run_dir))
+            manifest["artifacts"]["clean_transcript_json"] = str(
+                clean_json.relative_to(run_dir)
+            )
+            manifest["artifacts"]["clean_transcript_text"] = str(
+                clean_txt.relative_to(run_dir)
+            )
         manifest["status"] = "completed"
         _write_json(manifest_path, manifest)
         return run_dir
@@ -394,7 +460,9 @@ def main() -> int:
     parser.add_argument("--label-model-id", default="gpt-4.1-mini")
     parser.add_argument("--language-code")
     parser.add_argument("--label-language")
-    parser.add_argument("--diarize", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--diarize", action=argparse.BooleanOptionalAction, default=True
+    )
     parser.add_argument("--seed", type=int)
     parser.add_argument("--timeout", type=int, default=1800)
     parser.add_argument("--label-timeout", type=int, default=300)

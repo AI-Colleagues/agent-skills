@@ -2,7 +2,6 @@
 """Generate removal labels from verbatim transcript words using an OpenAI model."""
 
 from __future__ import annotations
-
 import argparse
 import csv
 import json
@@ -12,6 +11,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 from urllib import error, request
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -172,7 +172,9 @@ def _serialize_words(words: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _span_text(words: list[dict[str, Any]], start_index: int, end_index: int) -> str:
-    return "".join(str(word.get("text") or "") for word in words[start_index : end_index + 1]).strip()
+    return "".join(
+        str(word.get("text") or "") for word in words[start_index : end_index + 1]
+    ).strip()
 
 
 def _developer_prompt() -> str:
@@ -220,9 +222,17 @@ def _user_prompt(
     if language_hint:
         parts.extend(["", f"Primary language hint: {language_hint}."])
     if fillers:
-        parts.extend(["", "Filler examples to target aggressively:", ", ".join(fillers)])
+        parts.extend(
+            ["", "Filler examples to target aggressively:", ", ".join(fillers)]
+        )
     if catchphrases:
-        parts.extend(["", "Discourse markers and removable phrases to consider:", ", ".join(catchphrases)])
+        parts.extend(
+            [
+                "",
+                "Discourse markers and removable phrases to consider:",
+                ", ".join(catchphrases),
+            ]
+        )
     if protected_terms:
         parts.extend(
             [
@@ -245,7 +255,9 @@ def _user_prompt(
         [
             "",
             "Indexed verbatim words JSON:",
-            json.dumps(_serialize_words(words), ensure_ascii=False, separators=(",", ":")),
+            json.dumps(
+                _serialize_words(words), ensure_ascii=False, separators=(",", ":")
+            ),
         ]
     )
     return "\n".join(parts)
@@ -332,7 +344,9 @@ def _safety_filter_label(
             )
         if _contains_semantic_term(text, semantic_terms):
             accepted = False
-            reasons.append("auto-rejected by safety filter because span contains protected instructional terms")
+            reasons.append(
+                "auto-rejected by safety filter because span contains protected instructional terms"
+            )
 
     if accepted != bool(filtered["accepted"]) and reasons:
         filtered["accepted"] = accepted
@@ -356,7 +370,9 @@ def build_labels(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     words = _words(transcript)
     if not words:
-        raise RuntimeError("Transcript did not contain any verbatim words with timestamps.")
+        raise RuntimeError(
+            "Transcript did not contain any verbatim words with timestamps."
+        )
 
     developer_prompt = _developer_prompt()
     user_prompt = _user_prompt(
@@ -484,11 +500,18 @@ def main() -> int:
     )
     api_key = args.api_key or api_key
     if not api_key:
-        parser.error("Provide --api-key, set OPENAI_API_KEY, or store it in a nearby .env.")
+        parser.error(
+            "Provide --api-key, set OPENAI_API_KEY, or store it in a nearby .env."
+        )
 
     comparison_text = None
     if args.comparison_transcript:
-        comparison_text = Path(args.comparison_transcript).expanduser().resolve().read_text(encoding="utf-8")
+        comparison_text = (
+            Path(args.comparison_transcript)
+            .expanduser()
+            .resolve()
+            .read_text(encoding="utf-8")
+        )
     labels_doc, debug_doc = build_labels(
         transcript,
         api_key=api_key,
@@ -496,16 +519,24 @@ def main() -> int:
         comparison_text=comparison_text,
         language_hint=args.language_hint,
         fillers=tuple(item.strip() for item in args.fillers.split(",") if item.strip()),
-        catchphrases=tuple(item.strip() for item in args.catchphrases.split("|") if item.strip()),
-        protected_terms=tuple(item.strip() for item in args.protected_terms.split("|") if item.strip()),
-        semantic_terms=tuple(item.strip() for item in args.semantic_terms.split("|") if item.strip()),
+        catchphrases=tuple(
+            item.strip() for item in args.catchphrases.split("|") if item.strip()
+        ),
+        protected_terms=tuple(
+            item.strip() for item in args.protected_terms.split("|") if item.strip()
+        ),
+        semantic_terms=tuple(
+            item.strip() for item in args.semantic_terms.split("|") if item.strip()
+        ),
         max_auto_discourse_duration=args.max_auto_discourse_duration,
         timeout=args.timeout,
     )
 
     output_json = Path(args.output_json).expanduser().resolve()
     output_json.parent.mkdir(parents=True, exist_ok=True)
-    output_json.write_text(json.dumps(labels_doc, indent=2, ensure_ascii=False), encoding="utf-8")
+    output_json.write_text(
+        json.dumps(labels_doc, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     if args.output_csv:
         write_csv(labels_doc, Path(args.output_csv).expanduser().resolve())
     if args.words_csv:
@@ -513,7 +544,9 @@ def main() -> int:
     if args.output_debug_json:
         output_debug_json = Path(args.output_debug_json).expanduser().resolve()
         output_debug_json.parent.mkdir(parents=True, exist_ok=True)
-        output_debug_json.write_text(json.dumps(debug_doc, indent=2, ensure_ascii=False), encoding="utf-8")
+        output_debug_json.write_text(
+            json.dumps(debug_doc, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
     return 0
 
 

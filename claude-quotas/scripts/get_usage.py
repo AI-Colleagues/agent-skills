@@ -10,6 +10,7 @@ Limitations:
   In Desktop app mode, open a standalone terminal and run `claude /usage` directly.
 """
 
+import json
 import os
 import pathlib
 import pty
@@ -20,18 +21,19 @@ import subprocess
 import sys
 import tempfile
 import time
-import json
 
 
 def strip_ansi(text: str) -> str:
-    ansi_escape = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    return ansi_escape.sub('', text)
+    ansi_escape = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
 
 
 def is_desktop_app_mode() -> bool:
     """Return True if running inside the Claude Desktop app."""
-    return os.environ.get('CLAUDE_CODE_ENTRYPOINT') == 'claude-desktop' \
-        or os.environ.get('CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST') == '1'
+    return (
+        os.environ.get("CLAUDE_CODE_ENTRYPOINT") == "claude-desktop"
+        or os.environ.get("CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST") == "1"
+    )
 
 
 _MISSING = object()
@@ -42,11 +44,13 @@ def _write_json_atomic(path: pathlib.Path, data: object) -> None:
     fd = None
     tmp_path = None
     try:
-        fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f'.{path.name}.', suffix='.tmp')
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp"
+        )
         tmp_path = pathlib.Path(tmp_name)
         if path.exists():
             os.chmod(tmp_path, path.stat().st_mode)
-        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
             fd = None
             handle.write(encoded)
             handle.flush()
@@ -77,14 +81,16 @@ def capture_usage_output(timeout: float = 10.0) -> str:
     Temporarily patches hasAvailableSubscription=true so the local check passes,
     then restores the original value regardless of outcome.
     """
-    config_path = pathlib.Path.home() / '.claude.json'
+    config_path = pathlib.Path.home() / ".claude.json"
     original_value = None
     patched = False
     if config_path.exists():
         try:
             # `claude /usage` can reject valid paid accounts when this cached flag is stale,
             # so the helper temporarily flips it to reach the real usage view.
-            original_value = _patch_config(config_path, 'hasAvailableSubscription', True)
+            original_value = _patch_config(
+                config_path, "hasAvailableSubscription", True
+            )
             patched = True
         except Exception:
             pass
@@ -94,12 +100,15 @@ def capture_usage_output(timeout: float = 10.0) -> str:
     restore_error = None
     # Strip Desktop-app-specific env vars so the subprocess runs as a
     # plain CLI, which uses the standard OAuth token flow.
-    skip = {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_ENTRYPOINT',
-            'CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST'}
+    skip = {
+        "ANTHROPIC_API_KEY",
+        "CLAUDE_CODE_ENTRYPOINT",
+        "CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST",
+    }
     env = {k: v for k, v in os.environ.items() if k not in skip}
     try:
         process = subprocess.Popen(
-            ['claude', '/usage'],
+            ["claude", "/usage"],
             stdin=slave_fd,
             stdout=slave_fd,
             stderr=slave_fd,
@@ -125,16 +134,18 @@ def capture_usage_output(timeout: float = 10.0) -> str:
                 except OSError:
                     break
 
-            combined = strip_ansi(b''.join(chunks).decode('utf-8', errors='replace'))
+            combined = strip_ansi(b"".join(chunks).decode("utf-8", errors="replace"))
 
-            if 'Current week' in combined and 'Resets' in combined:
+            if "Current week" in combined and "Resets" in combined:
                 time.sleep(0.5)
                 done = True
-            elif 'only' in combined and ('subscription' in combined or 'available' in combined):
+            elif "only" in combined and (
+                "subscription" in combined or "available" in combined
+            ):
                 done = True
     finally:
         try:
-            os.write(master_fd, b'\x1b')
+            os.write(master_fd, b"\x1b")
         except OSError:
             pass
         time.sleep(0.3)
@@ -157,20 +168,20 @@ def capture_usage_output(timeout: float = 10.0) -> str:
             try:
                 data = json.loads(config_path.read_text())
                 if original_value is _MISSING:
-                    data.pop('hasAvailableSubscription', None)
+                    data.pop("hasAvailableSubscription", None)
                 else:
-                    data['hasAvailableSubscription'] = original_value
+                    data["hasAvailableSubscription"] = original_value
                 _write_json_atomic(config_path, data)
             except Exception:
                 restore_error = RuntimeError(
-                    f'failed to restore {config_path}; '
-                    'please verify `hasAvailableSubscription` manually'
+                    f"failed to restore {config_path}; "
+                    "please verify `hasAvailableSubscription` manually"
                 )
 
     if restore_error is not None:
         raise restore_error
 
-    return b''.join(chunks).decode('utf-8', errors='replace')
+    return b"".join(chunks).decode("utf-8", errors="replace")
 
 
 def parse_usage(raw: str) -> list[dict] | None:
@@ -180,10 +191,10 @@ def parse_usage(raw: str) -> list[dict] | None:
     """
     clean = strip_ansi(raw)
 
-    if 'only' in clean and ('subscription' in clean or 'available' in clean):
+    if "only" in clean and ("subscription" in clean or "available" in clean):
         return None
 
-    section_keys = ['Current session', 'Current week']
+    section_keys = ["Current session", "Current week"]
     # Use the last occurrence of each key — the TUI redraws multiple times and
     # earlier renders may be incomplete (missing the Resets line for the first
     # section), so the last render is the authoritative one.
@@ -202,46 +213,48 @@ def parse_usage(raw: str) -> list[dict] | None:
 
     results = []
     for key, text in sections_text:
-        pct_m = re.search(r'(\d+)%\s*used', text)
+        pct_m = re.search(r"(\d+)%\s*used", text)
         if not pct_m:
             continue
         percent = pct_m.group(1)
-        reset_m = re.search(r'Resets?\s+([^\r\n]+)', text)
-        resets = reset_m.group(1).strip() if reset_m else '?'
-        resets = re.sub(r'\s{2,}.*$', '', resets)
-        results.append({'name': key, 'percent': f'{percent}%', 'resets': resets})
+        reset_m = re.search(r"Resets?\s+([^\r\n]+)", text)
+        resets = reset_m.group(1).strip() if reset_m else "?"
+        resets = re.sub(r"\s{2,}.*$", "", resets)
+        results.append({"name": key, "percent": f"{percent}%", "resets": resets})
     return results
 
 
 def render_table(quotas: list[dict]) -> str:
-    rows = [(q['name'], q['percent'], q['resets']) for q in quotas]
+    rows = [(q["name"], q["percent"], q["resets"]) for q in quotas]
 
-    lines = ['```markdown', '| Quota | Used | Resets |', '|-------|------|--------|']
+    lines = ["```markdown", "| Quota | Used | Resets |", "|-------|------|--------|"]
     for name, used, resets in rows:
-        lines.append(f'| {name} | {used} | {resets} |')
-    lines.append('```')
-    return '\n'.join(lines)
+        lines.append(f"| {name} | {used} | {resets} |")
+    lines.append("```")
+    return "\n".join(lines)
 
 
 def main() -> None:
     if is_desktop_app_mode():
         print(
-            '_This skill cannot fetch quota data when running inside the Claude Desktop app. '
-            'The Desktop app routes usage API calls through its embedded browser session, '
-            'which spawned subprocesses cannot access._\n\n'
-            '_**Workaround:** Open a standalone terminal (outside the Desktop app) '
-            'and run `claude /usage` directly._'
+            "_This skill cannot fetch quota data when running inside the Claude Desktop app. "
+            "The Desktop app routes usage API calls through its embedded browser session, "
+            "which spawned subprocesses cannot access._\n\n"
+            "_**Workaround:** Open a standalone terminal (outside the Desktop app) "
+            "and run `claude /usage` directly._"
         )
         sys.exit(0)
 
     try:
         raw = capture_usage_output()
     except RuntimeError as exc:
-        print(f'_Failed to collect `claude /usage`: {exc}_')
+        print(f"_Failed to collect `claude /usage`: {exc}_")
         sys.exit(1)
 
     if not raw.strip():
-        print('_Could not capture `claude /usage` output. Make sure `claude` is on your PATH._')
+        print(
+            "_Could not capture `claude /usage` output. Make sure `claude` is on your PATH._"
+        )
         sys.exit(1)
 
     quotas = parse_usage(raw)
@@ -249,18 +262,20 @@ def main() -> None:
     if quotas is None:
         print(
             '_`/usage` returned "only available for subscription plans". '
-            'Your `~/.claude.json` has `hasAvailableSubscription: false`. '
-            'If your subscription is active, try `claude logout && claude login` '
-            'to refresh the cached account state._'
+            "Your `~/.claude.json` has `hasAvailableSubscription: false`. "
+            "If your subscription is active, try `claude logout && claude login` "
+            "to refresh the cached account state._"
         )
         sys.exit(0)
 
     if not quotas:
-        print('_No quota data found in `claude /usage` output. Try running it directly._')
+        print(
+            "_No quota data found in `claude /usage` output. Try running it directly._"
+        )
         sys.exit(1)
 
     print(render_table(quotas))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

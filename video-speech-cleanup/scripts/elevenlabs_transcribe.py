@@ -2,17 +2,16 @@
 """Transcribe local media with ElevenLabs Scribe v2 and save JSON/text outputs."""
 
 from __future__ import annotations
-
 import argparse
 import json
 import mimetypes
-import os
 import ssl
 import sys
 import uuid
 from pathlib import Path
 from typing import Any
 from urllib import error, request
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -101,14 +100,20 @@ def transcribe(
             payload = response.read().decode("utf-8")
     except error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"ElevenLabs API request failed ({exc.code}): {body}") from exc
+        raise RuntimeError(
+            f"ElevenLabs API request failed ({exc.code}): {body}"
+        ) from exc
     return json.loads(payload)
 
 
-def write_outputs(result: dict[str, Any], output_json: Path, output_txt: Path | None) -> None:
+def write_outputs(
+    result: dict[str, Any], output_json: Path, output_txt: Path | None
+) -> None:
     """Write transcript JSON and optional text."""
     output_json.parent.mkdir(parents=True, exist_ok=True)
-    output_json.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    output_json.write_text(
+        json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     if output_txt is not None:
         output_txt.parent.mkdir(parents=True, exist_ok=True)
         output_txt.write_text(str(result.get("text") or ""), encoding="utf-8")
@@ -123,8 +128,12 @@ def main() -> int:
     parser.add_argument("--api-key")
     parser.add_argument("--model-id", default="scribe_v2")
     parser.add_argument("--language-code")
-    parser.add_argument("--diarize", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--no-verbatim", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument(
+        "--diarize", action=argparse.BooleanOptionalAction, default=True
+    )
+    parser.add_argument(
+        "--no-verbatim", action=argparse.BooleanOptionalAction, default=False
+    )
     parser.add_argument("--seed", type=int)
     parser.add_argument("--timeout", type=int, default=1800)
     args = parser.parse_args()
@@ -139,7 +148,9 @@ def main() -> int:
     )
     api_key = args.api_key or api_key
     if not api_key:
-        parser.error("Provide --api-key, set ELEVENLABS_API_KEY, or store it in a nearby .env.")
+        parser.error(
+            "Provide --api-key, set ELEVENLABS_API_KEY, or store it in a nearby .env."
+        )
 
     result = transcribe(
         api_key=api_key,

@@ -2,7 +2,6 @@
 """Render a minimal Data Coffee MCP config snippet."""
 
 from __future__ import annotations
-
 import argparse
 import json
 import os

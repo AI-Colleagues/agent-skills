@@ -2,7 +2,6 @@
 """Helpers for loading configuration from nearby .env files."""
 
 from __future__ import annotations
-
 import os
 from pathlib import Path
 from typing import Iterable
@@ -32,7 +31,10 @@ def _parse_dotenv(path: Path) -> dict[str, str]:
 def _candidate_env_files(search_roots: Iterable[Path | str | None]) -> list[Path]:
     candidates: list[Path] = []
     seen: set[Path] = set()
-    ordered_roots = [Path.cwd(), *[Path(root) for root in search_roots if root is not None]]
+    ordered_roots = [
+        Path.cwd(),
+        *[Path(root) for root in search_roots if root is not None],
+    ]
 
     for root in ordered_roots:
         resolved = root.expanduser().resolve()
@@ -46,7 +48,9 @@ def _candidate_env_files(search_roots: Iterable[Path | str | None]) -> list[Path
     return candidates
 
 
-def find_env_value(name: str, *search_roots: Path | str | None) -> tuple[str | None, str | None]:
+def find_env_value(
+    name: str, *search_roots: Path | str | None
+) -> tuple[str | None, str | None]:
     """Return a variable from the first nearby .env, then fall back to the shell."""
     for env_path in _candidate_env_files(search_roots):
         value = _parse_dotenv(env_path).get(name)
