@@ -21,8 +21,13 @@ orcheo workflow upload workflow.py
 
 Useful upload flags:
 - `--entrypoint` for explicit LangGraph entrypoint selection
-- `--name` to rename uploaded workflow
 - `--config` / `--config-file` for runnable config payload
+
+The workflow's display name comes from the `name` field in the `# /// orcheo`
+frontmatter — update it there and re-upload to rename.
+
+Upload metadata can also come from the `# /// orcheo` frontmatter block in the
+workflow file (see [coding.md](./coding.md)); CLI flags take precedence.
 
 ### Reuploading after changes
 
@@ -127,3 +132,16 @@ orcheo plugin init my-plugin --output-dir /tmp
 
 This generates a complete package skeleton with `pyproject.toml`, manifest,
 starter node implementation, and tests — no need to clone the template repo.
+
+## Workspaces and service tokens
+
+All API commands run against the active workspace.
+
+```bash
+orcheo workspace me                  # workspaces the caller belongs to
+orcheo workspace use <slug>          # set the active workspace for this profile
+orcheo --workspace <slug> <command>  # one-off workspace override
+orcheo token list
+orcheo token create
+orcheo token revoke <token_id> --reason "<why>"
+```

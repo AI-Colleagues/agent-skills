@@ -36,7 +36,21 @@ Required secrets to replace before starting local services:
 
 If these still use template values (`change-me`, `replace-with-64-hex-chars`, etc.), ask the user whether to configure real values now or proceed with placeholders for local testing.
 
-## Bring up stack
+## Manage the stack with `orcheo stack` (preferred)
+
+`orcheo stack` wraps docker compose for the managed stack directory:
+
+```bash
+orcheo stack --pull      # pull latest stack images
+orcheo stack --start     # start services detached
+orcheo stack --ps        # list service status
+orcheo stack --restart   # restart services
+orcheo stack --logs      # stream logs; extra args forwarded, e.g. orcheo stack --logs backend
+orcheo stack --stop      # stop services
+orcheo stack --down      # stop and remove stack resources
+```
+
+## Bring up stack with raw compose (fallback)
 
 Run from `${ORCHEO_STACK_DIR:-$HOME/.orcheo/stack}`, or pass `-f` and `--project-directory`
 explicitly.

@@ -4,7 +4,7 @@ description: Bootstrap Orcheo CLI usage, configure profiles, set up local Orcheo
 license: MIT
 metadata:
   author: AI Colleagues
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # Orcheo

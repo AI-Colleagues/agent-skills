@@ -2,42 +2,55 @@
 
 ## Workflow uploading or running issues
 
-Orcheo validates uploaded LangGraph scripts in a RestrictedPython sandbox.
-Rejections usually mean the script uses syntax, imports, or runtime behavior
-outside the sandbox policy.
+Validation depends on the server's workflow definition mode
+(`ORCHEO_WORKFLOW_DEFINITION_MODE`) — see
+[coding.md](./coding.md#definition-modes-and-validation).
 
-What is allowed:
-- Python code compiled with RestrictedPython plus async functions, `await`, and
-  annotated assignments.
-- Imports from allow-listed module prefixes only:
-  `asyncio`, `json`, `langgraph`, `langchain*`, `orcheo`, `typing*`,
-  `collections`, `dataclasses`, `datetime`, `functools`, `html`,
-  `itertools`, `math`, `operator`, `pydantic`, `re`, `uuid`.
-- Standard `if __name__ == "__main__":` guards (the sandbox sets `__name__` to
-  `"__orcheo_ingest__"`, so guarded blocks do not run).
+### Failures in both modes
 
-What is blocked or constrained:
-- Importing non-allow-listed modules (for example `os`, `subprocess`, `socket`,
-  or third-party packages outside the list).
-- Relative imports (`from .foo import bar`).
-- Scripts exceeding configured size or execution timeout limits.
+- `Compilation error: ...`: plain Python syntax error; fix the reported line.
+- `LangGraph script exceeds the permitted size of N bytes`: remove dead code
+  and trim large constants or embedded assets.
+- Upload rejected at the API layer: managed deployments block client-supplied
+  scripts entirely; the server must set
+  `ORCHEO_WORKFLOW_TRUST_MODE=allow_client_uploads` (self-hosted only).
 
-How to fix common failures:
-- `Import of module ... is not permitted`: replace the dependency with an
-  allow-listed module or move the logic into Orcheo/server-side code.
-- `Relative imports are not supported`: change to absolute imports from an
-  allow-listed package.
-- `ValidationError` during upload for a templated custom-node field, for
-  example `Input should be a valid list` with
-  `input_value='{{config.configurable.text_fields}}'`: ingestion validates the
-  node constructor before runtime template resolution, so custom node fields
-  must accept the unresolved template string. If the runtime value is expected
-  to be a list/dict/bool/etc., widen the field annotation to also include
-  `str` (for example `list[str] | str`). Orcheo runtime will resolve the
-  template before node execution.
-- `script exceeds size limit` (wording may vary): remove dead code, trim large
-  constants/embedded assets, and move bulky data or helper logic into
-  versioned modules imported from allow-listed packages.
-- Timeout errors (for example `execution timed out`): reduce per-step work,
-  split the graph into smaller nodes, or move long-running logic outside
-  ingestion-time script execution.
+### Unrestricted mode (current default)
+
+The script executes in-process with full Python builtins at build time:
+
+- `LangGraph script execution exceeded the configured timeout`: module-level
+  code and the entrypoint should only assemble the graph — move I/O and heavy
+  computation into node execution.
+- `Script did not produce a LangGraph StateGraph`: expose a top-level
+  `StateGraph` or an `orcheo_workflow()` function returning one.
+- `Multiple StateGraph candidates discovered; specify an entrypoint`: pass
+  `--entrypoint <function>` (or set the `entrypoint` frontmatter key), or keep
+  a single graph per file.
+
+### Restricted mode (frozen IR)
+
+The script never executes; an AST validator compiles it to a frozen IR and
+rejects anything outside the declarative grammar:
+
+- `imports must come from Orcheo; '<module>' is not allowed`: import only from
+  `orcheo.*` (e.g. `from orcheo.graph import StateGraph`) and move other logic
+  into `CodeNode` bodies.
+- `relative imports are not allowed` / `star imports are not allowed`: use
+  absolute `orcheo.*` imports.
+- Rejections for lambdas, comprehensions, starred args, `await`/`yield`, or
+  underscore/dunder access: keep the `orcheo_workflow` entrypoint declarative
+  (node/edge construction and graph assembly only) and put computation in
+  `CodeNode.run` bodies, which run in the MicroPython-WASM sandbox with a
+  builtin allowlist.
+
+### Templated custom-node fields
+
+`ValidationError` during upload for a templated custom-node field, for
+example `Input should be a valid list` with
+`input_value='{{config.configurable.text_fields}}'`: node constructors are
+validated before runtime template resolution, so custom node fields must
+accept the unresolved template string. If the runtime value is expected to be
+a list/dict/bool/etc., widen the field annotation to also include `str` (for
+example `list[str] | str`). Orcheo runtime resolves the template before node
+execution.

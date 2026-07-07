@@ -17,3 +17,13 @@ Ask the user for the following values:
 
 Ask if the user needs to provide the following values:
 - `--auth-organization`
+- `--auth-scopes`
+- `--studio-url`
+- `--env-file <path>` to read values from a `.env` file instead of flags
+
+## Profiles
+
+- `orcheo config list` shows all configured profiles.
+- Pass `--profile <name>` to any `orcheo` command to use a non-default profile.
+- `orcheo workspace use <slug>` sets the active workspace for the profile;
+  `--workspace <slug>` overrides it per invocation.

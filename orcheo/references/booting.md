@@ -31,7 +31,11 @@ orcheo config --check
 
 ### Local mode checks
 
-1. Verify stack status from the compose project directory:
+1. Verify stack status (preferred; wraps docker compose for the managed stack):
+```bash
+orcheo stack --ps
+```
+   Fallback with raw compose if needed:
 ```bash
 STACK_DIR="${ORCHEO_STACK_DIR:-$HOME/.orcheo/stack}"
 docker compose -f "$STACK_DIR/docker-compose.yml" --project-directory "$STACK_DIR" ps
